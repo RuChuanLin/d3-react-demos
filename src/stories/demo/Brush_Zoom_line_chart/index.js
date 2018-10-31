@@ -1,18 +1,14 @@
 import React, { Component } from 'react';
+import './style.css';
 import * as d3 from 'd3';
 import styled from 'styled-components';
 import markdown from './README.md';
-import data from './data.csv';
+import rawData from './data.json';
 
 const Svg = styled.svg`
   cursor: move;
   fill: none;
   pointer-events: all;
-`;
-const Line = styled.path`
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
 `;
 
 class BrushZoomLineChart extends Component {
@@ -21,8 +17,8 @@ class BrushZoomLineChart extends Component {
     this.svgRef = React.createRef();
     this.lineRef = React.createRef();
     this.state = {
-      svgHeight: 960,
-      svgWidth: 500,
+      svgHeight: 500,
+      svgWidth: 960,
       pathHeight: 0,
       brushHeight: 0,
       pathWidth: 0,
@@ -60,17 +56,17 @@ class BrushZoomLineChart extends Component {
       d3.axisLeft(yScale)
     ];
 
-    // const brush = d3
-    //   .brushX()
-    //   .extent([[0, 0], [pathWidth, brushHeight]])
-    //   .on('brush end', brushed);
+    const brush = d3
+      .brushX()
+      .extent([[0, 0], [pathWidth, brushHeight]])
+      .on('brush end', brushed);
 
-    // const zoom = d3
-    //   .zoom()
-    //   .scaleExtent([1, Infinity])
-    //   .translateExtent([[0, 0], [pathWidth, brushHeight]])
-    //   .extent([[0, 0], [pathWidth, brushHeight]])
-    //   .on('zoom', zoomed);
+    const zoom = d3
+      .zoom()
+      .scaleExtent([1, Infinity])
+      .translateExtent([[0, 0], [pathWidth, brushHeight]])
+      .extent([[0, 0], [pathWidth, brushHeight]])
+      .on('zoom', zoomed);
     const line = d3
       .line()
       .x(d => xScale(d.Date))
@@ -105,45 +101,102 @@ class BrushZoomLineChart extends Component {
       .append('g')
       .attr('class', 'context')
       .attr('transform', `translate(${brushMargin.left}, ${brushMargin.top})`);
-    console.log(data);
-    d3.csv(
-      data,
-      d => {
-        d.Date = parseDate(d.Date);
-        d.Air_Temp = +d.Air_Temp;
-        return d;
-      },
-      function(error, data) {
-        if (error) throw error;
-        xScale.domain(d3.extent(data, d => d.Date));
-        yScale.domain([0, d3.max(data, ({ Air_Temp }) => Air_Temp)]);
-        xScale2.domain(xScale.domain());
-        yScale2.domain(yScale.domain());
+    console.log(rawData);
+    const data = rawData.map(d => {
+      // console.log(d.Date);
+      d.Date = parseDate(d.Date);
+      // console.log(d.Date);
+      d.Air_Temp = +d.Air_Temp;
+      return d;
+    });
+    xScale.domain(d3.extent(data, d => d.Date));
+    yScale.domain([0, d3.max(data, ({ Air_Temp }) => Air_Temp)]);
+    xScale2.domain(xScale.domain());
+    yScale2.domain(yScale.domain());
 
-        focus
-          .append('g')
-          .attr('class', 'axis axis--x')
-          .attr('transform', `translate(0, ${pathHeight})`)
-          .call(xAxis);
-        focus
-          .append('g')
-          .attr('class', 'axis axis--y')
-          .call(yAxis);
+    focus
+      .append('g')
+      .attr('class', 'axis axis--x')
+      .attr('transform', `translate(0, ${pathHeight})`)
+      .call(xAxis);
+    focus
+      .append('g')
+      .attr('class', 'axis axis--y')
+      .call(yAxis);
 
-        lineChart
-          .append('path')
-          .datum(data)
-          .attr('class', 'line')
-          .attr('d', line);
-      }
-    );
+    lineChart
+      .append('path')
+      .datum(data)
+      .attr('class', 'line')
+      .attr('d', line);
 
-    // function brushed() {
-    //   // if (d3.event.sourceEvent && d3.event.sourceEvent.type === 'zoom') return;
-    //   const s = d3.event.selection || xScale2.range();
-    //   xScale.domain(s.map(xScale2.invert, xScale2));
+    context
+      .append('path')
+      .datum(data)
+      .attr('class', 'line')
+      .attr('d', line2);
+    context
+      .append('g')
+      .attr('class', 'axis axis--x')
+      .attr('transform', 'translate(0,' + brushHeight + ')')
+      .call(xAxis2);
 
-    // }
+    context
+      .append('g')
+      .attr('class', 'brush')
+      .call(brush)
+      .call(brush.move, xScale.range());
+
+    svg
+      .append('rect')
+      .attr('class', 'zoom')
+      .attr('width', pathWidth)
+      .attr('height', pathHeight)
+      .attr(
+        'transform',
+        'translate(' + svgMargin.left + ',' + svgMargin.top + ')'
+      )
+      .call(zoom);
+
+    function brushed() {
+      if (d3.event.sourceEvent && d3.event.sourceEvent.type === 'zoom') return;
+      /**
+       * s是陣列, 在程式執行初期, 因為尚未觸發brush, 會先使用xScale2的range()方法
+       * 回傳例子: [0, 900]
+       * 當觸發brush event時, d3.event內會有一個屬性: selection
+       * selection為一陣列, 回傳目前brush選取的範圍
+       * 回傳例子: [100, 800]
+       * 我們就是要用這個selection來處理選取範圍
+       */
+      const s = d3.event.selection || xScale2.range();
+      /**
+       * s.map(xScale2.invert, xScale2)是javascript的陣列方法, 其內兩個參數都是函式
+       * 根據官方說法, 第二個函式可以當成第一個函式內部的this
+       * 總之, 這個函式處理完會回傳一個日期陣列
+       * [date1, date2]
+       * 再讓xScale去更新domain
+       */
+      xScale.domain(s.map(xScale2.invert, xScale2));
+      lineChart.select('.line').attr('d', line);
+      focus.select('.axis--x').call(xAxis);
+      svg
+        .select('.zoom')
+        .call(
+          zoom.transform,
+          d3.zoomIdentity.scale(pathWidth / (s[1] - s[0])).translate(-s[0], 0)
+        );
+    }
+
+    function zoomed() {
+      if (d3.event.sourceEvent && d3.event.sourceEvent.type === 'brush') return; // ignore zoom-by-brush
+      var t = d3.event.transform;
+      xScale.domain(t.rescaleX(xScale2).domain());
+      lineChart.select('.line').attr('d', line);
+      focus.select('.axis--x').call(xAxis);
+      context
+        .select('.brush')
+        .call(brush.move, xScale.range().map(t.invertX, t));
+    }
   }
   render() {
     const { svgHeight, svgWidth } = this.state;

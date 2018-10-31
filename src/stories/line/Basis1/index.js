@@ -46,8 +46,16 @@ class Basis1 extends Component {
 
     const line = d3
       .line()
-      .x(d => xScale(d.date))
-      .y(d => yScale(d.value));
+      .x(d => {
+        console.log('d.date :', d.date);
+        console.log(' xScale(d.date) :', xScale(d.date));
+        return xScale(d.date);
+      })
+      .y(d => {
+        console.log('d.value :', d.value);
+        console.log('yScale(d.value) :', yScale(d.value));
+        return yScale(d.value);
+      });
 
     return (
       <StyledPath

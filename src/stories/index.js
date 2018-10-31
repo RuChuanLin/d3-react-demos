@@ -1,6 +1,7 @@
 import demo from './demo';
 import line from './line';
 import axis from './axis';
+import mouse from './mouse';
 import drag from './drag';
 import zoom from './zoom';
 import transition from './transition';
@@ -8,6 +9,7 @@ import transition from './transition';
 demo();
 line();
 axis();
+mouse();
 drag();
 zoom();
 transition();
