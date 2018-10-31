@@ -4,3 +4,8 @@
   stroke: black;
   shape-rendering: crispEdges; /* Round any decimal pixels so it'll render nicely */
 }
+
+.x-line {
+  stroke: #321112;
+  stroke-width: 1;
+}

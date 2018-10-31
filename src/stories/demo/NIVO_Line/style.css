@@ -1,0 +1,14 @@
+.line {
+  fill: none;
+  stroke-width: 2px;
+}
+.x-line {
+  stroke: #321112;
+  stroke-width: 3;
+}
+g {
+  pointer-events: all;
+}
+.g_main {
+  pointer-events: all;
+}

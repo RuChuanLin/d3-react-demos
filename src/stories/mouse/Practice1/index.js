@@ -40,19 +40,23 @@ class Basis1 extends Component {
 
   componentDidMount() {
     const { data, margin, width, height, radius } = this.state;
+    const xDomain = [0, d3.max(data, ({ x }) => x)];
+    const yDomain = [0, d3.max(data, ({ y }) => y)];
     const xScale = d3
       .scaleLinear()
-      .domain([0, d3.max(data, ({ x }) => x)])
+      .domain(xDomain)
       .range([margin.left, width - margin.right]);
     const yScale = d3
       .scaleLinear()
-      .domain([0, d3.max(data, ({ y }) => y)])
+      .domain(yDomain)
       .range([margin.top, height - margin.bottom]);
 
     const xAxis = d3.axisTop().scale(xScale);
     const yAxis = d3.axisLeft().scale(yScale);
 
     const svg = d3.select(this.svgRef);
+
+    const xLine = svg.append('path').attr('class', 'x-line');
 
     svg
       .append('g')
@@ -77,31 +81,37 @@ class Basis1 extends Component {
       .on('mouseout', mouseoverHandler);
 
     svg.on('mousemove', function() {
-      const { x, y } = d3.event;
-      const scaledX = xScale.invert(x);
-      // svg.style('background', 'orange');
+      const { offsetX, offsetY } = d3.event;
+      const scaledX = xScale.invert(offsetX);
+      console.log(scaledX);
+      if (scaledX < xDomain[0] || scaledX > xDomain[1]) {
+        xLine.attr('opacity', 0);
+        return;
+      }
       const lineCoords = [
-        { x, y: margin.top },
-        { x, y: height - margin.bottom }
+        { x: offsetX, y: margin.top },
+        { x: offsetX, y: height - margin.bottom }
       ];
-      console.log(lineCoords);
       const line = d3
         .line()
         .x(({ x }) => x)
         .y(({ y }) => y);
-      svg.select(`#pathhhhh`).remove();
-      svg
-        .append('path')
-        .attr('d', line(lineCoords))
-        .attr('stroke', '#aaa')
-        .attr('id', `pathhhhh`);
-      svg.select('#pointttt').remove();
-      svg
-        .append('circle')
-        .attr('id', 'pointttt')
-        .attr('r', 3)
-        .attr('cx', x)
-        .attr('cy', y);
+      xLine.attr('d', line(lineCoords)).attr('opacity', 0.7);
+      // svg.select('#pointttt').remove();
+      // svg
+      //   .append('circle')
+      //   .attr('id', 'pointttt')
+      //   .attr('r', 3)
+      //   .attr('cx', x)
+      //   .attr('cy', y);
+    });
+
+    svg.on('click', () => {
+      console.log('d3.event :', d3.event);
+      console.log('d3.event.x :', d3.event.x);
+      console.log('d3.event.y :', d3.event.y);
+      console.log('d3.event.offsetX :', d3.event.offsetX);
+      console.log('d3.event.offsetY :', d3.event.offsetY);
     });
     function handleMouseOver(d, i) {
       d3.select(this)
